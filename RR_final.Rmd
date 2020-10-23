@@ -1,0 +1,110 @@
+---
+title: "Reproducible Research Course Project"
+author: "Zubeir Said"
+date: "10/22/2020"
+output: html_document
+---
+The goal of if this project is to be able to demonstrate our data analysis and be able to answer questions regarding the NOAA Storm Database that we have been provided
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Synopsis
+
+As we all know storms can contribute to and/or cause public health crises and cause severe economic turmoil as well across the affected region. 
+
+In this project we are going to navigate through the data and perform some analysis to see if we can gain any further insights on the damage predicted or make any estiamtes or predictions so we as a people next time know how to better respond to these situation. 
+
+After completing our analysis we leanred that a tornado by far brings upon the most damage to a community as far as death toll and floods creat the biggest ecnomic damage to a city
+
+```{r, echo=TRUE}
+library(ggplot2)
+library(knitr)
+```
+
+## Data Processing
+
+You can also embed plots, for example:
+
+```{r, echo=TRUE}
+if(!file.exists("stormData.csv.bz2")) {
+  download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2",
+  destfile = "stormData.csv.bz2", method = "curl")
+}
+
+dbNOAA <- read.csv(bzfile("stormData.csv.bz2"), sep=",", header=T)
+head(dbNOAA)
+```
+
+
+
+```{r, echo=TRUE}
+tidyNOAA <- dbNOAA[,c('EVTYPE','FATALITIES','INJURIES', 'PROPDMG', 'PROPDMGEXP', 'CROPDMG', 'CROPDMGEXP')]
+head(tidyNOAA)
+```
+
+
+```{r, echo=TRUE}
+str(tidyNOAA)
+```
+
+
+```{r, echo=TRUE}
+tidyNOAA$PROPDMGNUM = 0
+
+
+tidyNOAA[tidyNOAA$PROPDMGEXP == "H", ]$PROPDMGNUM = tidyNOAA[tidyNOAA$PROPDMGEXP == "H", ]$PROPDMG * 10^2
+tidyNOAA[tidyNOAA$PROPDMGEXP == "K", ]$PROPDMGNUM = tidyNOAA[tidyNOAA$PROPDMGEXP == "K", ]$PROPDMG * 10^3
+tidyNOAA[tidyNOAA$PROPDMGEXP == "M", ]$PROPDMGNUM = tidyNOAA[tidyNOAA$PROPDMGEXP == "M", ]$PROPDMG * 10^6
+tidyNOAA[tidyNOAA$PROPDMGEXP == "B", ]$PROPDMGNUM = tidyNOAA[tidyNOAA$PROPDMGEXP == "B", ]$PROPDMG * 10^9
+
+head(tidyNOAA, 100)
+```
+
+```{r, echo=TRUE}
+tidyNOAA$CROPDMGNUM = 0
+
+
+tidyNOAA[tidyNOAA$CROPDMGEXP == "H", ]$CROPDMGNUM = tidyNOAA[tidyNOAA$CROPDMGEXP == "H", ]$CROPDMG * 10^2
+tidyNOAA[tidyNOAA$CROPDMGEXP == "K", ]$CROPDMGNUM = tidyNOAA[tidyNOAA$CROPDMGEXP == "K", ]$CROPDMG * 10^3
+tidyNOAA[tidyNOAA$CROPDMGEXP == "M", ]$CROPDMGNUM = tidyNOAA[tidyNOAA$CROPDMGEXP == "M", ]$CROPDMG * 10^6
+tidyNOAA[tidyNOAA$CROPDMGEXP == "B", ]$CROPDMGNUM = tidyNOAA[tidyNOAA$CROPDMGEXP == "B", ]$CROPDMG * 10^9
+```
+
+##RESULTS
+
+```{r, echo=TRUE}
+fatalities <- aggregate(FATALITIES ~ EVTYPE, data=tidyNOAA, sum)
+
+fatalities <- fatalities[order(-fatalities$FATALITIES), ][1:10, ]
+fatalities$EVTYPE <- factor(fatalities$EVTYPE, levels = fatalities$EVTYPE)
+
+ggplot(fatalities, aes(x = EVTYPE, y = FATALITIES)) + 
+    geom_bar(stat = "identity", fill = "blue", las = 3) + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+    xlab("Event Type") + ylab("Fatalities") + ggtitle("Number of fatalities by top 10 Weather Events")
+```
+
+```{r, echo=TRUE}
+injuries <- aggregate(INJURIES ~ EVTYPE, data=tidyNOAA, sum)
+injuries <- injuries[order(-injuries$INJURIES), ][1:10, ]
+injuries$EVTYPE <- factor(injuries$EVTYPE, levels = injuries$EVTYPE)
+
+ggplot(injuries, aes(x = EVTYPE, y = INJURIES)) + 
+    geom_bar(stat = "identity", fill = "blue", las = 3) + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+    xlab("Event Type") + ylab("Injuries") + ggtitle("Number of injuries by top 10 Weather Events")
+```
+
+```{r, echo=TRUE}
+damages <- aggregate(PROPDMGNUM + CROPDMGNUM ~ EVTYPE, data=tidyNOAA, sum)
+names(damages) = c("EVTYPE", "TOTALDAMAGE")
+damages <- damages[order(-damages$TOTALDAMAGE), ][1:10, ]
+damages$EVTYPE <- factor(damages$EVTYPE, levels = damages$EVTYPE)
+
+ggplot(damages, aes(x = EVTYPE, y = TOTALDAMAGE)) + 
+    geom_bar(stat = "identity", fill = "blue", las = 3) + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+    xlab("Event Type") + ylab("Damages ($)") + ggtitle("Property & Crop Damages by top 10 Weather Events")
+```
+
